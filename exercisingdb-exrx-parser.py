@@ -11,7 +11,6 @@ import sqlite3
 import time
 from bs4 import BeautifulSoup, NavigableString
 
-
 def read(f):
     with open(f) as fi:
         return [i.strip() for i in fi.readlines()]
@@ -24,6 +23,8 @@ class ExerciseObj:
     def __init__(self,url):
         vv= ExerciseDB.getSoup(url)
         html = vv.select('article > div.ad-banner-block')[0]
+        self.url=url
+        self.name=html.select('h1.page-title').get_text().strip()
         self.gifurl=html.select('img.img-responsive')[0].attrs['src']
         self.video=html.select('iframe')[0].attrs['src']
         classification=html.select('table')[0]
@@ -126,9 +127,12 @@ class ExerciseDB:
             all_links.extend(self.getExercisesURLs(self.baseurl+i))
         for link in all_links:
             self.getExerciseData(self.baseurl+link)
-        pass
 
     def getExercisesURLs(self,url):
+        path='exercises/'
+        try:
+            os.mkdir(path)
+        except: pass
         f=url.replace('/','_').replace('.','_').replace(':','_')
         if os.path.exists(f):
             fi=read(f)
@@ -144,7 +148,7 @@ class ExerciseDB:
             if 'href' not in i.attrs: continue
             if 'http' in i.attrs['href']: continue
             s.add(r.sub('',i.attrs['href']))
-        write(f,'\n'.join(list(s)))
+        write(path+f,'\n'.join(list(s)))
         time.sleep(2)
         return list(s)
 
@@ -294,27 +298,5 @@ def write_data_to_sqllite():
     sql._close_conn()
 
 if __name__ == '__main__':
-
-    # edb = ExerciseDB()
-    # e=ExerciseObj('https://exrx.net/WeightExercises/GluteusMaximus/BBSquatChains')
-    # print e
-    # with open('testjson','w') as fil:
-    #     json.dump(e.get_map(),fil)
-    # v= ExerciseDB.getSoup('https://exrx.net/Lists/ExList/ShouldWt').select('article > div.container a')
-    # s = set()
-    # r = re.compile(r'#.*$')
-    # for i in v:
-    #     if 'href' not in i.attrs: continue
-    #     if 'http' in i.attrs['href']: continue
-    #     s.add(r.sub('',i.attrs['href']))
-    # print '\n'.join(s)
-
-
-
-    # for i in sorted_x:
-    #     print i
-    #     try:
-    #         print "\t"+str(sql.query("select name from texts where id = '{id}'".format(id=i[0]))[0])
-    #     except Exception as e:
-    #         pass
-    pass
+    edb = ExerciseDB()
+    write_data_to_sqllite()
