@@ -24,9 +24,12 @@ class ExerciseObj:
         vv= ExerciseDB.getSoup(url)
         html = vv.select('article > div.ad-banner-block')[0]
         self.url=url
-        self.name=html.select('h1.page-title').get_text().strip()
-        self.gifurl=html.select('img.img-responsive')[0].attrs['src']
-        self.video=html.select('iframe')[0].attrs['src']
+        try:
+            self.name=vv.select('h1.page-title')[0].get_text()
+            self.gifurl=html.select('img.img-responsive')[0].attrs['src']
+            self.video=html.select('iframe')[0].attrs['src']
+        except Exception as e:
+            raise e
         classification=html.select('table')[0]
         v=1
         self.classifications={}
@@ -53,7 +56,7 @@ class ExerciseObj:
                     instructions[k]=vv
                 k=i.getText().strip()
                 vv=''
-            else: vv+=str(i.get_text())
+            else: vv+=i.get_text().encode('utf-8')
         comments=''
         v=False
         for i in html.select('div > div')[0]:
@@ -63,7 +66,7 @@ class ExerciseObj:
                 v=True
                 continue
             if not v: continue
-            comments+=str(i.get_text())
+            comments+=str(i.get_text().encode('utf-8'))
             instructions['Comments']=comments
         self.instructions=instructions
         muscles={}
@@ -83,7 +86,9 @@ class ExerciseObj:
                     'Muscles':self.muscles,
                     'Classifications':self.classifications,
                     'GifURL':self.gifurl,
-                    'VideoURL':self.video
+                    'VideoURL':self.video,
+                    'Name':self.name,
+                    'url':self.url
                 }
 
 class ExerciseDB:
@@ -153,7 +158,11 @@ class ExerciseDB:
         return list(s)
 
     def getExerciseData(self,url):
-        f=url.replace('/','_').replace('.','_').replace(':','_')
+        path='exercises/'
+        try:
+            os.mkdir(path)
+        except: pass
+        f=path+url.replace('/','_').replace('.','_').replace(':','_')
         if os.path.exists(f):
             try:
                 with open(f) as fil:
@@ -163,8 +172,9 @@ class ExerciseDB:
         try:
             time.sleep(2)
             eo=ExerciseObj(url)
-        except:
-            print url
+        except Exception as e:
+            traceback.print_exc()
+            print str(e)+"\n\t"+url
             # write(f,str(None))
             return None
         with open(f,'w') as fil:
